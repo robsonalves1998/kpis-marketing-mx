@@ -240,7 +240,7 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',system-u
       <div class="side-col">
         <div class="side-card">
           <div class="side-card-top">
-            <div><div class="side-card-brand">Mobiliaê</div><div class="side-card-label">Seguidores · meta +250/mês</div></div>
+            <div><div class="side-card-brand">Mobiliaê</div><div class="side-card-label">Seguidores · meta +300/mês</div></div>
             <div class="side-card-icon" style="background:rgba(252,108,63,0.1);color:#fc6c3f"><i class="ti ti-users"></i></div>
           </div>
           <div class="side-card-value" id="val-seg-mob">1.317</div>
@@ -249,7 +249,7 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',system-u
         </div>
         <div class="side-card">
           <div class="side-card-top">
-            <div><div class="side-card-brand">MX Móveis</div><div class="side-card-label">Seguidores · meta +180/mês</div></div>
+            <div><div class="side-card-brand">MX Móveis</div><div class="side-card-label">Seguidores · meta +160/mês</div></div>
             <div class="side-card-icon" style="background:rgba(0,0,0,0.05);color:#555"><i class="ti ti-users"></i></div>
           </div>
           <div class="side-card-value" id="val-seg-mx">9.213</div>
@@ -313,7 +313,7 @@ const WINDSOR_DATA={
 function getW(y,m){return WINDSOR_DATA[`${y}-${m}`]||null;}
 
 // Qualidade: salvamentos (50%) + compartilhamentos (50%)
-// Mobiliaê: saves≥200, shares≥150 | MX: saves≥60, shares≥100
+// Mobiliaê: saves≥200, shares≥150 | MX: saves≥50, shares≥100
 function calcQualidade(w){
   if(!w) return null;
   const mob={
@@ -323,7 +323,7 @@ function calcQualidade(w){
   mob.media=Math.round((mob.saves.pct+mob.shares.pct)/2);
   mob.ok=mob.media>=100;
   const mx={
-    saves:{val:w.saves_mx, meta:60, pct:Math.min(Math.round(w.saves_mx/60*100),100)},
+    saves:{val:w.saves_mx, meta:50, pct:Math.min(Math.round(w.saves_mx/50*100),100)},
     shares:{val:w.shares_mx, meta:100, pct:Math.min(Math.round(w.shares_mx/100*100),100)},
   };
   mx.media=Math.round((mx.saves.pct+mx.shares.pct)/2);
@@ -397,7 +397,7 @@ function getBlocks(y,m){
     {id:'producao',title:'Produção e entrega',responsible:'Robson',kpis:[
       {id:'retrabalho',name:'Taxa de retrabalho',desc:'Correções ÷ posts publicados',meta:'Máx. 20%',type:'retrabalho'},
       {id:'criacoes',name:'Criações e campanhas',desc:'Demandas extras ÷ total',meta:'80% em até 7 dias',type:'yn'},
-      {id:'qualidade',name:'Qualidade dos materiais',desc:'Salvamentos e compartilhamentos via Windsor.ai',meta:'Mob: saves≥200+shares≥150 · MX: saves≥60+shares≥100',type:'qualidade-auto'},
+      {id:'qualidade',name:'Qualidade dos materiais',desc:'Salvamentos e compartilhamentos via Windsor.ai',meta:'Mob: saves≥200+shares≥150 · MX: saves≥50+shares≥100',type:'qualidade-auto'},
     ]},
     {id:'endo',title:'Endomarketing',responsible:'Dani',kpis:[
       {id:'acoes',name:'Ações internas',desc:'Mínimo uma ação por mês',meta:'1/mês',type:'yn'},
@@ -418,8 +418,8 @@ function getBlocks(y,m){
       {id:'stories_mx',name:'Stories MX Móveis',desc:'Mínimo 3x por semana — verificado via Windsor.ai',meta:'≥80% das semanas com 3+ stories',type:'stories-auto',campo:'stories_mx',metaSemana:3,unidade:'stories'},
       {id:'engajamento',name:'Engajamento Mobiliaê',desc:'Total de interações no mês via Windsor.ai',meta:'1.800 interações/mês',type:'counter-auto',total:1800},
       {id:'engajamento_mx',name:'Engajamento MX Móveis',desc:'Total de interações no mês via Windsor.ai',meta:'1.500 interações/mês',type:'counter-auto',total:1500},
-      {id:'seguidores',name:'Seguidores Mobiliaê',desc:'Novos seguidores no mês via Windsor.ai',meta:'+250/mês',type:'counter-auto',total:250},
-      {id:'seguidores_mx',name:'Seguidores MX Móveis',desc:'Novos seguidores no mês via Windsor.ai',meta:'+180/mês',type:'counter-auto',total:180},
+      {id:'seguidores',name:'Seguidores Mobiliaê',desc:'Novos seguidores no mês via Windsor.ai',meta:'+300/mês',type:'counter-auto',total:300},
+      {id:'seguidores_mx',name:'Seguidores MX Móveis',desc:'Novos seguidores no mês via Windsor.ai',meta:'+160/mês',type:'counter-auto',total:160},
       {id:'influencers',name:'Influencers Mobiliaê',desc:'Posts com #publimob — detectado via Windsor.ai',meta:`${mt.influencers} influencers`,type:'counter-auto',total:mt.influencers},
     ]},
     {id:'inovacao',title:'Inovação e melhoria',responsible:'Wel',kpis:[
