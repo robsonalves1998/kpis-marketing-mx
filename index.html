@@ -295,24 +295,9 @@ const WINDSOR_DATA={
                  '2026-06-08','2026-06-09','2026-06-10','2026-06-11','2026-06-12',
                  '2026-06-15','2026-06-16','2026-06-17','2026-06-18','2026-06-19','2026-06-20','2026-06-22'],
     stories_mx:['2026-06-02','2026-06-04','2026-06-09','2026-06-11','2026-06-16','2026-06-19'],
-    prazo_mob:[
-      {d:'2026-06-01',ok:true}, {d:'2026-06-02',ok:true}, {d:'2026-06-03',ok:true},
-      {d:'2026-06-04',ok:true}, {d:'2026-06-05',ok:true}, {d:'2026-06-06',ok:false},
-      {d:'2026-06-08',ok:true}, {d:'2026-06-09',ok:true}, {d:'2026-06-10',ok:true},
-      {d:'2026-06-11',ok:true}, {d:'2026-06-12',ok:true}, {d:'2026-06-13',ok:false},
-      {d:'2026-06-15',ok:true}, {d:'2026-06-16',ok:true}, {d:'2026-06-17',ok:true},
-      {d:'2026-06-18',ok:true}, {d:'2026-06-19',ok:true}, {d:'2026-06-20',ok:false},
-      {d:'2026-06-22',ok:true}, {d:'2026-06-23',ok:true}, {d:'2026-06-24',ok:false},
-      {d:'2026-06-25',ok:true}, {d:'2026-06-26',ok:true}, {d:'2026-06-27',ok:true},
-      {d:'2026-06-29',ok:true}, {d:'2026-06-30',ok:false}
-    ],
-    prazo_mx:[
-      {d:'2026-06-02',ok:true}, {d:'2026-06-04',ok:true},
-      {d:'2026-06-09',ok:true}, {d:'2026-06-11',ok:true},
-      {d:'2026-06-16',ok:true}, {d:'2026-06-18',ok:false},
-      {d:'2026-06-23',ok:true}, {d:'2026-06-25',ok:false},
-      {d:'2026-06-30',ok:false}
-    ]
+    // posts_dias: dias em que houve post novo (por data) — usado para "Postagens no prazo" (contagem semanal)
+    posts_dias_mob:[],
+    posts_dias_mx:[]
   },
   '2026-6':{
     posts_mob:1, posts_mx:0, influencers_mob:0,
@@ -321,19 +306,8 @@ const WINDSOR_DATA={
     saves_mob:81, saves_mx:2, shares_mob:43, shares_mx:5,
     stories_mob:[],
     stories_mx:[],
-    prazo_mob:[
-      {d:'2026-07-01',ok:null}, {d:'2026-07-02',ok:null}, {d:'2026-07-03',ok:null}, {d:'2026-07-04',ok:null},
-      {d:'2026-07-06',ok:null}, {d:'2026-07-07',ok:null}, {d:'2026-07-08',ok:null}, {d:'2026-07-09',ok:null}, {d:'2026-07-10',ok:null}, {d:'2026-07-11',ok:null},
-      {d:'2026-07-13',ok:null}, {d:'2026-07-14',ok:null}, {d:'2026-07-15',ok:null}, {d:'2026-07-16',ok:null}, {d:'2026-07-17',ok:null}, {d:'2026-07-18',ok:null},
-      {d:'2026-07-20',ok:null}, {d:'2026-07-21',ok:null}, {d:'2026-07-22',ok:null}, {d:'2026-07-23',ok:null}, {d:'2026-07-24',ok:null}, {d:'2026-07-25',ok:null},
-      {d:'2026-07-27',ok:null}, {d:'2026-07-28',ok:null}, {d:'2026-07-29',ok:null}, {d:'2026-07-30',ok:null}, {d:'2026-07-31',ok:null}
-    ],
-    prazo_mx:[
-      {d:'2026-07-02',ok:null}, {d:'2026-07-07',ok:null}, {d:'2026-07-09',ok:null},
-      {d:'2026-07-14',ok:null}, {d:'2026-07-16',ok:null},
-      {d:'2026-07-21',ok:null}, {d:'2026-07-23',ok:null},
-      {d:'2026-07-28',ok:null}, {d:'2026-07-30',ok:null}
-    ]
+    posts_dias_mob:['2026-07-01'],
+    posts_dias_mx:[]
   }
 };
 function getW(y,m){return WINDSOR_DATA[`${y}-${m}`]||null;}
@@ -358,13 +332,13 @@ function calcQualidade(w){
 }
 
 // Stories: avalia por semana — mob≥5/semana, mx≥3/semana, meta ≥80% semanas ok
-function calcStories(w, conta, metaSemana){
+function calcStories(w, campo, metaSemana){
   if(!w) return null;
-  const dias=conta==='mob'?w.stories_mob:w.stories_mx;
+  const dias=w[campo];
   if(!dias) return null;
 
-  // Gerar todas as semanas do mês (seg a dom)
-  const ano=2026, mes=5; // junho = índice 5
+  // Gerar todas as semanas do mês selecionado (seg a dom)
+  const ano=curY, mes=curM;
   const primeiroDia=new Date(ano,mes,1);
   const ultimoDia=new Date(ano,mes+1,0);
 
@@ -403,20 +377,6 @@ function calcStories(w, conta, metaSemana){
   return{semanas:semanasAvaliadas, semsOk, semsTotal:semsVerif.length, pct, passed:pct>=80, meta:metaSemana};
 }
 
-function calcPrazo(w){
-  if(!w||!w.prazo_mob) return null;
-  const mobVerif=w.prazo_mob.filter(d=>d.ok!==null);
-  const mxVerif=w.prazo_mx.filter(d=>d.ok!==null);
-  const mobOk=mobVerif.filter(d=>d.ok).length, mobTotal=mobVerif.length;
-  const mxOk=mxVerif.filter(d=>d.ok).length, mxTotal=mxVerif.length;
-  const mobPct=mobTotal>0?Math.round(mobOk/mobTotal*100):0;
-  const mxPct=mxTotal>0?Math.round(mxOk/mxTotal*100):0;
-  return{
-    mob:{dias:w.prazo_mob, ok:mobOk, total:mobTotal, pct:mobPct, passed:mobPct>=80},
-    mx:{dias:w.prazo_mx, ok:mxOk, total:mxTotal, pct:mxPct, passed:mxPct>=80}
-  };
-}
-
 function countWD(y,m,wd){let c=0,d=new Date(y,m,1);while(d.getMonth()===m){if(d.getDay()===wd)c++;d.setDate(d.getDate()+1);}return c;}
 function dim(y,m){return new Date(y,m+1,0).getDate();}
 function getMetas(y,m){
@@ -451,9 +411,10 @@ function getBlocks(y,m){
     {id:'conteudo',title:'Conteúdo redes',responsible:'Dani',kpis:[
       {id:'posts_mob',name:'Posts Mobiliaê',desc:'6 posts por semana',meta:`${mt.posts_mob} posts`,type:'counter-auto',total:mt.posts_mob},
       {id:'posts_mx',name:'Posts MX',desc:'2 posts por semana',meta:`${mt.posts_mx} posts`,type:'counter-auto',total:mt.posts_mx},
-      {id:'postagens_prazo',name:'Postagens no prazo',desc:'Mobiliaê: seg–sáb · MX: ter+qui — verificado via Windsor.ai',meta:'≥80% dos dias previstos',type:'prazo-auto'},
-      {id:'stories_mob',name:'Stories Mobiliaê',desc:'Mínimo 5x por semana — verificado via Windsor.ai',meta:'≥80% das semanas com 5+ stories',type:'stories-auto',conta:'mob'},
-      {id:'stories_mx',name:'Stories MX Móveis',desc:'Mínimo 3x por semana — verificado via Windsor.ai',meta:'≥80% das semanas com 3+ stories',type:'stories-auto',conta:'mx'},
+      {id:'postagens_prazo_mob',name:'Postagens no prazo — Mobiliaê',desc:'Mínimo 6 posts por semana — verificado via Windsor.ai',meta:'≥80% das semanas com 6+ posts',type:'stories-auto',campo:'posts_dias_mob',metaSemana:6,unidade:'posts'},
+      {id:'postagens_prazo_mx',name:'Postagens no prazo — MX Móveis',desc:'Mínimo 2 posts por semana — verificado via Windsor.ai',meta:'≥80% das semanas com 2+ posts',type:'stories-auto',campo:'posts_dias_mx',metaSemana:2,unidade:'posts'},
+      {id:'stories_mob',name:'Stories Mobiliaê',desc:'Mínimo 5x por semana — verificado via Windsor.ai',meta:'≥80% das semanas com 5+ stories',type:'stories-auto',campo:'stories_mob',metaSemana:5,unidade:'stories'},
+      {id:'stories_mx',name:'Stories MX Móveis',desc:'Mínimo 3x por semana — verificado via Windsor.ai',meta:'≥80% das semanas com 3+ stories',type:'stories-auto',campo:'stories_mx',metaSemana:3,unidade:'stories'},
       {id:'engajamento',name:'Engajamento Mobiliaê',desc:'Total de interações no mês via Windsor.ai',meta:'1.800 interações/mês',type:'counter-auto',total:1800},
       {id:'engajamento_mx',name:'Engajamento MX Móveis',desc:'Total de interações no mês via Windsor.ai',meta:'1.500 interações/mês',type:'counter-auto',total:1500},
       {id:'seguidores',name:'Seguidores Mobiliaê',desc:'Novos seguidores no mês via Windsor.ai',meta:'+250/mês',type:'counter-auto',total:250},
@@ -489,7 +450,7 @@ function initState(y,m){
       else if(w&&k.id==='seguidores')    state[b.id][k.id]=w.seg_mob||0;
       else if(w&&k.id==='seguidores_mx') state[b.id][k.id]=w.seg_mx||0;
       else state[b.id][k.id]=0;
-    } else if(k.type==='prazo-auto'||k.type==='qualidade-auto'||k.type==='stories-auto'){
+    } else if(k.type==='qualidade-auto'||k.type==='stories-auto'){
       state[b.id][k.id]=null;
     } else {
       state[b.id][k.id]=(k.type==='counter'||k.type==='retrabalho')?0:null;
@@ -520,9 +481,8 @@ function kpiDone(k,bst,st){
   const v=bst[k.id];
   if(k.type==='retrabalho'){const pub=postsPublicados();if(pub===0)return null;return(v||0)/pub<=0.20;}
   if(k.type==='counter'||k.type==='counter-auto') return(v||0)>=k.total;
-  if(k.type==='prazo-auto'){const p=calcPrazo(getW(curY,curM));return p?p.mob.passed&&p.mx.passed:null;}
   if(k.type==='qualidade-auto'){const q=calcQualidade(getW(curY,curM));return q?q.mob.ok&&q.mx.ok:null;}
-  if(k.type==='stories-auto'){const meta=k.conta==='mob'?5:3;const s=calcStories(getW(curY,curM),k.conta,meta);return s?s.passed:null;}
+  if(k.type==='stories-auto'){const s=calcStories(getW(curY,curM),k.campo,k.metaSemana);return s?s.passed:null;}
   return v===true;
 }
 function blockOk(bid,y,m,st){
@@ -531,7 +491,7 @@ function blockOk(bid,y,m,st){
 function blockStatus(bid){
   const block=getBlocks(curY,curM).find(b=>b.id===bid);
   const nonTbd=block.kpis.filter(k=>k.type!=='tbd');
-  const allNull=nonTbd.every(k=>(k.type==='counter'||k.type==='counter-auto'||k.type==='retrabalho')?!state[bid][k.id]:k.type==='prazo-auto'||k.type==='qualidade-auto'||k.type==='stories-auto'?!getW(curY,curM):state[bid][k.id]===null);
+  const allNull=nonTbd.every(k=>(k.type==='counter'||k.type==='counter-auto'||k.type==='retrabalho')?!state[bid][k.id]:k.type==='qualidade-auto'||k.type==='stories-auto'?!getW(curY,curM):state[bid][k.id]===null);
   if(allNull) return 'pending';
   if(blockOk(bid,curY,curM,state)) return 'ok';
   return nonTbd.some(k=>kpiDone(k,state[bid],state)===false)?'fail':'partial';
@@ -553,45 +513,9 @@ function renderBlocks(){
         const msg=pub===0?'Aguardando posts':alertR?`⚠ ${pctR}% — acima do limite`:pctR+'%'+(okR?' — dentro do limite':'');
         return `<div class="kpi-row"><div class="kpi-top"><div class="kpi-info"><div class="kpi-name">${k.name}</div><div class="kpi-desc">${k.desc}</div><div class="kpi-meta">Base: ${pub} posts · Meta: máx. 20%</div></div></div><div class="counter-wrap"><div style="display:flex;align-items:center;gap:10px;margin-bottom:7px"><label style="font-size:12px;color:#888">Correções:</label><input type="number" min="0" value="${corr}" oninput="setRetrabalho(this.value)" style="width:65px;font-size:14px;padding:4px 7px;border:1px solid #ddd;border-radius:6px;text-align:center;outline:none"><span style="font-size:12px;color:#888">de ${pub}</span></div><div class="counter-progress"><div class="counter-bar" style="width:${Math.min(pctR,100)}%;background:${bc}"></div></div><div class="counter-stat" style="color:${bc};font-weight:${alertR||okR?600:400}">${msg}</div></div></div>`;
       }
-      if(k.type==='prazo-auto'){
-        const w=getW(curY,curM), p=calcPrazo(w);
-        if(!p) return `<div class="kpi-row"><div class="kpi-top"><div class="kpi-info"><div class="kpi-name">${k.name} <span style="font-size:10px;color:#fc6c3f;font-weight:600;padding:1px 7px;background:rgba(252,108,63,0.08);border-radius:20px;margin-left:4px">Windsor.ai</span></div><div class="kpi-meta" style="color:#bbb">Sem dados para este mês</div></div></div></div>`;
-        const dias_nomes=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
-        function renderDias(dados,cor){
-          return dados.map(d=>{
-            const parts=d.d.split('-');
-            const dt=new Date(parseInt(parts[0]),parseInt(parts[1])-1,parseInt(parts[2]));
-            const dia=dt.getDate(), diaSem=dias_nomes[dt.getDay()];
-            const bg=d.ok===true?cor+'15':d.ok===false?'rgba(0,0,0,0.04)':'#f9f9f9';
-            const border=d.ok===true?cor:d.ok===false?'#ddd':'#e8e8e8';
-            const textColor=d.ok===true?cor:d.ok===false?'#ccc':'#ddd';
-            return `<div style="display:flex;flex-direction:column;align-items:center;gap:2px;min-width:34px">
-              <div style="font-size:9px;color:#bbb">${diaSem}</div>
-              <div style="width:30px;height:30px;border-radius:6px;border:1px solid ${border};background:${bg};display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:10px;font-weight:600;color:${textColor}">
-                ${dia}${d.ok===true?`<i class="ti ti-check" style="font-size:7px"></i>`:''}
-              </div>
-            </div>`;
-          }).join('');
-        }
-        const geral=p.mob.passed&&p.mx.passed, sc=geral?ORANGE:p.mob.passed||p.mx.passed?'#e65100':RED;
-        return `<div class="kpi-row"><div class="kpi-top"><div class="kpi-info">
-          <div class="kpi-name">${k.name} <span style="font-size:10px;color:#fc6c3f;font-weight:600;padding:1px 7px;background:rgba(252,108,63,0.08);border-radius:20px;margin-left:4px">Windsor.ai</span></div>
-        </div></div>
-        <div class="counter-wrap" style="margin-top:10px">
-          <div style="margin-bottom:8px">
-            <div style="font-size:11px;font-weight:600;color:#555;margin-bottom:5px">Mobiliaê (seg–sáb) · ${p.mob.ok}/${p.mob.total} dias · ${p.mob.pct}%</div>
-            <div style="display:flex;flex-wrap:wrap;gap:5px">${renderDias(p.mob.dias,ORANGE)}</div>
-          </div>
-          <div style="margin-bottom:8px">
-            <div style="font-size:11px;font-weight:600;color:#555;margin-bottom:5px">MX Móveis (ter+qui) · ${p.mx.ok}/${p.mx.total} dias · ${p.mx.pct}%</div>
-            <div style="display:flex;flex-wrap:wrap;gap:5px">${renderDias(p.mx.dias,ORANGE)}</div>
-          </div>
-          <div class="counter-stat" style="color:${sc};font-weight:600">${geral?'✓ Ambas dentro do prazo (≥80%)':p.mob.passed||p.mx.passed?'⚠ Uma marca abaixo de 80%':'✗ Ambas abaixo de 80%'}</div>
-        </div></div>`;
-      }
       if(k.type==='stories-auto'){
-        const meta=k.conta==='mob'?5:3;
-        const s=calcStories(getW(curY,curM),k.conta,meta);
+        const meta=k.metaSemana, unidade=k.unidade||'stories';
+        const s=calcStories(getW(curY,curM),k.campo,meta);
         const dias_nomes=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
         if(!s) return `<div class="kpi-row"><div class="kpi-top"><div class="kpi-info"><div class="kpi-name">${k.name} <span style="font-size:10px;color:#fc6c3f;font-weight:600;padding:1px 7px;background:rgba(252,108,63,0.08);border-radius:20px;margin-left:4px">Windsor.ai</span></div><div class="kpi-meta" style="color:#bbb">Sem dados</div></div></div></div>`;
         const semanasHtml=s.semanas.map((sem,i)=>{
@@ -613,7 +537,7 @@ function renderBlocks(){
             </div>`;
           }).join('');
           return `<div style="margin-bottom:8px">
-            <div style="font-size:10px;font-weight:600;color:${sc};margin-bottom:4px">Semana ${i+1} · ${feitos}/${meta} stories${semOk?' ✓':semPendente?' (pendente)':''}</div>
+            <div style="font-size:10px;font-weight:600;color:${sc};margin-bottom:4px">Semana ${i+1} · ${feitos}/${meta} ${unidade}${semOk?' ✓':semPendente?' (pendente)':''}</div>
             <div style="display:flex;flex-wrap:wrap;gap:4px">${diasHtml}</div>
           </div>`;
         }).join('');
@@ -726,14 +650,8 @@ function kpiProgress(k,bst,st){
     const q=calcQualidade(getW(curY,curM));
     return q?Math.min((q.mob.media+q.mx.media)/200,1):null;
   }
-  if(k.type==='prazo-auto'){
-    const p=calcPrazo(getW(curY,curM));
-    if(!p) return null;
-    return Math.min((p.mob.pct+p.mx.pct)/200,1);
-  }
   if(k.type==='stories-auto'){
-    const meta=k.conta==='mob'?5:3;
-    const s=calcStories(getW(curY,curM),k.conta,meta);
+    const s=calcStories(getW(curY,curM),k.campo,k.metaSemana);
     return s?Math.min(s.pct/100,1):null;
   }
   return null;
