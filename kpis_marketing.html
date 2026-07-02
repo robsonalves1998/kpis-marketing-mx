@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KPIs Marketing — MX Móveis</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCDEVN6zNrHCoPgMw9dupQ1fWpsyoa5A0Y",
+    authDomain: "kpis-marketing-mx.firebaseapp.com",
+    projectId: "kpis-marketing-mx",
+    storageBucket: "kpis-marketing-mx.firebasestorage.app",
+    messagingSenderId: "644851854979",
+    appId: "1:644851854979:web:148260550757d9444875b6"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  // Expõe funções para o script principal
+  window._fbSave = async function(key, data){
+    try{
+      await setDoc(doc(db,'kpis',key), {data: JSON.stringify(data), updated: new Date().toISOString()});
+      return true;
+    }catch(e){console.error('Firebase save error:',e);return false;}
+  };
+
+  window._fbLoad = async function(key){
+    try{
+      const snap = await getDoc(doc(db,'kpis',key));
+      if(snap.exists()) return JSON.parse(snap.data().data);
+      return null;
+    }catch(e){console.error('Firebase load error:',e);return null;}
+  };
+
+  window._fbListen = function(key, callback){
+    return onSnapshot(doc(db,'kpis',key), snap=>{
+      if(snap.exists()) callback(JSON.parse(snap.data().data));
+    });
+  };
+
+  window._firebaseReady = true;
+  document.dispatchEvent(new Event('firebase-ready'));
+</script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',system-ui,sans-serif;background:#f5f5f3;color:#1a1a1a}
+
+/* ── HEADER ── */
+.header{background:#1a1a1a;padding:13px 28px;display:flex;align-items:center;gap:14px;flex-shrink:0}
+.header img{height:32px;filter:brightness(0) saturate(100%) invert(50%) sepia(90%) saturate(500%) hue-rotate(330deg) brightness(105%)}
+.header-title{color:#fff;font-size:15px;font-weight:700}
+.header-sub{color:rgba(255,255,255,0.4);font-size:12px;margin-top:2px}
+
+/* ── TABS ── */
+.tabs{display:flex;border-bottom:1px solid #e5e5e5;background:#fff;padding:0 28px;flex-shrink:0}
+.tab{padding:11px 22px;font-size:14px;cursor:pointer;border-bottom:2px solid transparent;color:#888;font-weight:500;display:flex;align-items:center;gap:6px}
+.tab.active{color:#fc6c3f;border-bottom-color:#fc6c3f}
+.tab:hover:not(.active){color:#333}
+
+/* ── PREENCHIMENTO ── */
+#tab-fill{display:none;overflow-y:auto;padding:20px 28px;height:calc(100vh - 88px)}
+#tab-fill.active{display:block}
+
+/* ── DASHBOARD — usa grid idêntico ao kpis_dashboard.html ── */
+#tab-dash{display:none}
+#tab-dash.active{
+  display:grid;
+  grid-template-rows:auto auto 1fr;
+  gap:0;
+  width:100%;
+  height:calc(100vh - 88px);
+  overflow:hidden;
+}
+
+/* FILL STYLES */
+.month-bar{display:flex;align-items:center;gap:12px;margin-bottom:22px;padding:13px 16px;background:#fff;border-radius:8px;border:1px solid #e5e5e5;flex-wrap:wrap}
+.month-bar label{font-size:13px;color:#666;white-space:nowrap;display:flex;align-items:center;gap:5px}
+.month-bar select,.month-bar input{font-size:14px;padding:6px 10px;border:1px solid #ddd;border-radius:6px;background:#fff;color:#222;outline:none}
+.block-card{border:1px solid #e5e5e5;border-radius:10px;margin-bottom:12px;overflow:hidden;background:#fff}
+.block-header{padding:13px 16px;display:flex;align-items:center;justify-content:space-between;background:#fafaf8;cursor:pointer;user-select:none}
+.block-header:hover{background:#f3f3f0}
+.block-title-wrap{display:flex;align-items:center;gap:9px}
+.block-title{font-size:13px;font-weight:700;color:#1a1a1a}
+.block-resp{font-size:11px;color:#aaa}
+.block-status{font-size:11px;padding:3px 10px;border-radius:20px;font-weight:600}
+.s-pending{background:#f0f0f0;color:#aaa}
+.s-ok{background:rgba(252,108,63,0.12);color:#fc6c3f}
+.s-fail{background:rgba(0,0,0,0.07);color:#000}
+.s-partial{background:#fff8e1;color:#e65100}
+.block-body{display:none;padding:0 16px 4px}
+.block-body.open{display:block}
+.kpi-row{padding:11px 0;border-bottom:1px solid #f0f0f0}
+.kpi-row:last-child{border-bottom:none}
+.kpi-top{display:flex;align-items:flex-start;gap:10px}
+.kpi-info{flex:1}
+.kpi-name{font-size:13px;font-weight:600;color:#1a1a1a}
+.kpi-desc{font-size:12px;color:#777;margin-top:3px;line-height:1.5}
+.kpi-meta{font-size:11px;color:#bbb;margin-top:3px}
+.yn-wrap{display:flex;gap:5px;flex-shrink:0;margin-top:2px}
+.yn{width:28px;height:28px;border-radius:6px;border:1px solid #ddd;background:#fff;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center}
+.yn.yes.active{background:rgba(252,108,63,0.1);border-color:#fc6c3f;color:#fc6c3f}
+.yn.no.active{background:rgba(0,0,0,0.07);border-color:#999;color:#000}
+.tbd-badge{font-size:11px;padding:3px 9px;border-radius:20px;background:#fff8f0;color:#fc6c3f;border:1px solid rgba(252,108,63,0.3);margin-top:6px;display:inline-block}
+.counter-wrap{margin-top:9px}
+.counter-label{font-size:12px;color:#888;margin-bottom:6px;font-weight:500}
+.counter-dots{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:7px}
+.dot{width:28px;height:28px;border-radius:6px;border:1px solid #ddd;background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:11px;color:#bbb;font-weight:600}
+.dot:hover{border-color:#fc6c3f;color:#fc6c3f}
+.dot.done{background:rgba(252,108,63,0.1);border-color:#fc6c3f;color:#fc6c3f}
+.counter-progress{height:5px;background:#f0f0f0;border-radius:20px;overflow:hidden;margin-top:3px}
+.counter-bar{height:100%;background:#fc6c3f;border-radius:20px;transition:width 0.25s}
+.counter-stat{font-size:11px;color:#bbb;margin-top:3px}
+.block-footer{padding:9px 16px;background:#fafaf8;border-top:1px solid #f0f0f0;font-size:11px;color:#bbb;display:flex;align-items:center;gap:5px}
+.save-area{display:flex;justify-content:flex-end;margin-top:10px}
+.btn-save{background:#fc6c3f;color:#fff;border:none;padding:11px 28px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:7px}
+.chevron{transition:transform 0.2s;font-size:14px;color:#bbb}
+.chevron.open{transform:rotate(180deg)}
+
+/* DASHBOARD STYLES — idênticos ao kpis_dashboard.html */
+.dash-month-bar{display:flex;align-items:center;gap:1.5vw;padding:1vh 3vw}
+.dash-month-bar label{font-size:1.3vh;color:#666;white-space:nowrap}
+.dash-month-bar select{font-size:1.3vh;padding:0.5vh 0.8vw;border:1px solid #ddd;border-radius:6px;outline:none}
+
+.metrics-row{display:grid;grid-template-columns:1fr 1fr;gap:1.5vw;padding:0 3vw}
+.metric-card{background:#fff;border-radius:1.2vh;padding:1.5vh 2vw;display:flex;align-items:center;gap:1.5vw;border:1px solid #e5e5e5}
+.metric-icon{width:5vh;height:5vh;border-radius:1vh;display:flex;align-items:center;justify-content:center;font-size:2.2vh;flex-shrink:0;background:rgba(252,108,63,0.1);color:#fc6c3f}
+.metric-label{font-size:1.2vh;color:#888;font-weight:500;margin-bottom:0.3vh}
+.metric-value{font-size:3vh;font-weight:700;line-height:1}
+.metric-sub{font-size:1.1vh;color:#aaa;margin-top:0.3vh}
+
+.section-title{font-size:1.2vh;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:1.5px;padding:0.8vh 3vw}
+
+/* PIZZAS — CSS exato do kpis_dashboard.html */
+.pizzas-grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  grid-template-rows:repeat(2,1fr);
+  gap:1.5vw;
+  min-height:0;
+}
+.pizza-card{
+  background:#fff;
+  border-radius:1.5vh;
+  border:1px solid #e5e5e5;
+  padding:1.5vh 1vw;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:space-between;
+  overflow:hidden;
+  min-height:0;
+}
+.pizza-title{font-size:1.4vh;font-weight:700;color:#1a1a1a;text-align:center;line-height:1.3}
+.pizza-chart-wrap{
+  position:relative;
+  width:100%;
+  flex:1;
+  min-height:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:1.5vh 2.5vw;
+}
+.pizza-chart-wrap canvas{max-height:100%;max-width:100%}
+.pizza-stats{display:flex;gap:1.5vw;justify-content:center;font-size:1.1vh;margin-top:0.5vh}
+.pizza-stat{display:flex;align-items:center;gap:0.4vw;color:#777}
+.pizza-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0}
+.no-data{grid-column:1/-1;grid-row:1/-1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#bbb;font-size:2vh;gap:2vh}
+
+/* DASH BODY — envolve pizzas + coluna lateral */
+.dash-body{display:grid;grid-template-columns:1fr 22vw;gap:1.5vw;padding:0 3vw 1.5vh;min-height:0;overflow:hidden}
+
+/* SIDE CARDS */
+.side-col{display:grid;grid-template-rows:repeat(4,1fr);gap:1vh;min-height:0;overflow:hidden}
+.side-card{background:#fff;border-radius:1.2vh;border:1px solid #e5e5e5;padding:1vh 1vw;display:flex;flex-direction:column;gap:0.3vh;overflow:hidden;min-height:0}
+.side-card-top{display:flex;align-items:center;justify-content:space-between}
+.side-card-brand{font-size:0.9vh;font-weight:700;color:#bbb;text-transform:uppercase;letter-spacing:1px}
+.side-card-label{font-size:1vh;color:#888;font-weight:500}
+.side-card-value{font-size:2.5vh;font-weight:700;color:#1a1a1a;line-height:1}
+.side-card-sub{font-size:0.9vh;color:#bbb}
+.side-card-icon{width:3vh;height:3vh;border-radius:0.6vh;display:flex;align-items:center;justify-content:center;font-size:1.4vh;flex-shrink:0}
+.side-card-chart{
+  position:relative;
+  width:100%;
+  flex:1;
+  min-height:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.side-card-chart canvas{max-height:100%;max-width:100%}
+</style>
+</head>
+<body>
+
+<div style="display:flex;flex-direction:column;height:100vh;overflow:hidden">
+
+  <div class="header">
+    <img src="https://www.mxmoveis.com.br/arquivos/logo-mx-moveis.png" alt="MX" onerror="this.style.display='none'">
+    <div>
+      <div class="header-title">KPIs Marketing</div>
+      <div class="header-sub">Acompanhamento mensal da equipe</div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('fill')"><i class="ti ti-edit"></i> Preenchimento</div>
+    <div class="tab" onclick="switchTab('dash')"><i class="ti ti-chart-pie"></i> Dashboard</div>
+  </div>
+
+  <!-- PREENCHIMENTO -->
+  <div id="tab-fill" class="active">
+    <div class="month-bar">
+      <label><i class="ti ti-calendar"></i> Mês</label>
+      <select id="sel-month" onchange="onMonthChange()"></select>
+      <label><i class="ti ti-user"></i> Preenchido por</label>
+      <input id="inp-who" type="text" placeholder="Seu nome" style="max-width:140px">
+    </div>
+    <div id="blocks-container"></div>
+    <div class="save-area">
+      <button class="btn-save" onclick="saveData()"><i class="ti ti-device-floppy"></i> Salvar mês</button>
+    </div>
+  </div>
+
+  <!-- DASHBOARD — grid idêntico ao original -->
+  <div id="tab-dash">
+    <div class="dash-month-bar">
+      <label><i class="ti ti-calendar" style="margin-right:4px"></i>Mês:</label>
+      <select id="dash-sel-month" onchange="renderDash()"></select>
+    </div>
+    <div class="section-title">Status por bloco</div>
+    <div class="dash-body">
+      <div id="pizzas-area" class="pizzas-grid"></div>
+      <div class="side-col">
+        <div class="side-card">
+          <div class="side-card-top">
+            <div><div class="side-card-brand">Mobiliaê</div><div class="side-card-label">Seguidores · meta +250/mês</div></div>
+            <div class="side-card-icon" style="background:rgba(252,108,63,0.1);color:#fc6c3f"><i class="ti ti-users"></i></div>
+          </div>
+          <div class="side-card-value" id="val-seg-mob">1.317</div>
+          <div class="side-card-sub" id="sub-seg-mob">+229 no mês · 92% da meta</div>
+          <div class="side-card-chart"><canvas id="sc-seg-mob"></canvas></div>
+        </div>
+        <div class="side-card">
+          <div class="side-card-top">
+            <div><div class="side-card-brand">MX Móveis</div><div class="side-card-label">Seguidores · meta +180/mês</div></div>
+            <div class="side-card-icon" style="background:rgba(0,0,0,0.05);color:#555"><i class="ti ti-users"></i></div>
+          </div>
+          <div class="side-card-value" id="val-seg-mx">9.213</div>
+          <div class="side-card-sub" id="sub-seg-mx">+192 no mês · ✓ meta batida</div>
+          <div class="side-card-chart"><canvas id="sc-seg-mx"></canvas></div>
+        </div>
+        <div class="side-card">
+          <div class="side-card-top">
+            <div><div class="side-card-brand">Mobiliaê</div><div class="side-card-label">Interações · meta 1.800/mês</div></div>
+            <div class="side-card-icon" style="background:rgba(252,108,63,0.1);color:#fc6c3f"><i class="ti ti-heart"></i></div>
+          </div>
+          <div class="side-card-value" id="val-int-mob">1.458</div>
+          <div class="side-card-sub" id="sub-int-mob">81% da meta · jun em andamento</div>
+          <div class="side-card-chart"><canvas id="sc-int-mob"></canvas></div>
+        </div>
+        <div class="side-card">
+          <div class="side-card-top">
+            <div><div class="side-card-brand">MX Móveis</div><div class="side-card-label">Interações · meta 1.500/mês</div></div>
+            <div class="side-card-icon" style="background:rgba(0,0,0,0.05);color:#555"><i class="ti ti-heart"></i></div>
+          </div>
+          <div class="side-card-value" id="val-int-mx">815</div>
+          <div class="side-card-sub" id="sub-int-mx">54% da meta · jun em andamento</div>
+          <div class="side-card-chart"><canvas id="sc-int-mx"></canvas></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const ORANGE='#fc6c3f', RED='#000000', GRAY='#ccc';
+
+/* Windsor.ai — atualizado via Claude no início de cada mês */
+const WINDSOR_DATA={
+  '2026-5':{
+    posts_mob:21, posts_mx:8, influencers_mob:2,
+    int_mob:2933, int_mx:1285, seg_mob:591, seg_mx:122,
+    followers_mob:1661, followers_mx:9224,
+    saves_mob:530, saves_mx:43, shares_mob:221, shares_mx:141,
+    // stories: dias em que houve story novo (por data)
+    stories_mob:['2026-06-01','2026-06-02','2026-06-03','2026-06-04','2026-06-05',
+                 '2026-06-08','2026-06-09','2026-06-10','2026-06-11','2026-06-12',
+                 '2026-06-15','2026-06-16','2026-06-17','2026-06-18','2026-06-19','2026-06-20','2026-06-22'],
+    stories_mx:['2026-06-02','2026-06-04','2026-06-09','2026-06-11','2026-06-16','2026-06-19'],
+    prazo_mob:[
+      {d:'2026-06-01',ok:true}, {d:'2026-06-02',ok:true}, {d:'2026-06-03',ok:true},
+      {d:'2026-06-04',ok:true}, {d:'2026-06-05',ok:true}, {d:'2026-06-06',ok:false},
+      {d:'2026-06-08',ok:true}, {d:'2026-06-09',ok:true}, {d:'2026-06-10',ok:true},
+      {d:'2026-06-11',ok:true}, {d:'2026-06-12',ok:true}, {d:'2026-06-13',ok:false},
+      {d:'2026-06-15',ok:true}, {d:'2026-06-16',ok:true}, {d:'2026-06-17',ok:true},
+      {d:'2026-06-18',ok:true}, {d:'2026-06-19',ok:true}, {d:'2026-06-20',ok:false},
+      {d:'2026-06-22',ok:true}, {d:'2026-06-23',ok:true}, {d:'2026-06-24',ok:false},
+      {d:'2026-06-25',ok:true}, {d:'2026-06-26',ok:true}, {d:'2026-06-27',ok:true},
+      {d:'2026-06-29',ok:true}, {d:'2026-06-30',ok:false}
+    ],
+    prazo_mx:[
+      {d:'2026-06-02',ok:true}, {d:'2026-06-04',ok:true},
+      {d:'2026-06-09',ok:true}, {d:'2026-06-11',ok:true},
+      {d:'2026-06-16',ok:true}, {d:'2026-06-18',ok:false},
+      {d:'2026-06-23',ok:true}, {d:'2026-06-25',ok:false},
+      {d:'2026-06-30',ok:false}
+    ]
+  },
+  '2026-6':{
+    posts_mob:0, posts_mx:0, influencers_mob:0,
+    int_mob:1, int_mx:2, seg_mob:5, seg_mx:1,
+    followers_mob:1666, followers_mx:9225,
+    saves_mob:0, saves_mx:0, shares_mob:0, shares_mx:1,
+    stories_mob:[],
+    stories_mx:[],
+    prazo_mob:[
+      {d:'2026-07-01',ok:null}, {d:'2026-07-02',ok:null}, {d:'2026-07-03',ok:null}, {d:'2026-07-04',ok:null},
+      {d:'2026-07-06',ok:null}, {d:'2026-07-07',ok:null}, {d:'2026-07-08',ok:null}, {d:'2026-07-09',ok:null}, {d:'2026-07-10',ok:null}, {d:'2026-07-11',ok:null},
+      {d:'2026-07-13',ok:null}, {d:'2026-07-14',ok:null}, {d:'2026-07-15',ok:null}, {d:'2026-07-16',ok:null}, {d:'2026-07-17',ok:null}, {d:'2026-07-18',ok:null},
+      {d:'2026-07-20',ok:null}, {d:'2026-07-21',ok:null}, {d:'2026-07-22',ok:null}, {d:'2026-07-23',ok:null}, {d:'2026-07-24',ok:null}, {d:'2026-07-25',ok:null},
+      {d:'2026-07-27',ok:null}, {d:'2026-07-28',ok:null}, {d:'2026-07-29',ok:null}, {d:'2026-07-30',ok:null}, {d:'2026-07-31',ok:null}
+    ],
+    prazo_mx:[
+      {d:'2026-07-02',ok:null}, {d:'2026-07-07',ok:null}, {d:'2026-07-09',ok:null},
+      {d:'2026-07-14',ok:null}, {d:'2026-07-16',ok:null},
+      {d:'2026-07-21',ok:null}, {d:'2026-07-23',ok:null},
+      {d:'2026-07-28',ok:null}, {d:'2026-07-30',ok:null}
+    ]
+  }
+};
+function getW(y,m){return WINDSOR_DATA[`${y}-${m}`]||null;}
+
+// Qualidade: salvamentos (50%) + compartilhamentos (50%)
+// Mobiliaê: saves≥200, shares≥150 | MX: saves≥60, shares≥100
+function calcQualidade(w){
+  if(!w) return null;
+  const mob={
+    saves:{val:w.saves_mob, meta:200, pct:Math.min(Math.round(w.saves_mob/200*100),100)},
+    shares:{val:w.shares_mob, meta:150, pct:Math.min(Math.round(w.shares_mob/150*100),100)},
+  };
+  mob.media=Math.round((mob.saves.pct+mob.shares.pct)/2);
+  mob.ok=mob.media>=100;
+  const mx={
+    saves:{val:w.saves_mx, meta:60, pct:Math.min(Math.round(w.saves_mx/60*100),100)},
+    shares:{val:w.shares_mx, meta:100, pct:Math.min(Math.round(w.shares_mx/100*100),100)},
+  };
+  mx.media=Math.round((mx.saves.pct+mx.shares.pct)/2);
+  mx.ok=mx.media>=100;
+  return{mob,mx};
+}
+
+// Stories: avalia por semana — mob≥5/semana, mx≥3/semana, meta ≥80% semanas ok
+function calcStories(w, conta, metaSemana){
+  if(!w) return null;
+  const dias=conta==='mob'?w.stories_mob:w.stories_mx;
+  if(!dias) return null;
+
+  // Gerar todas as semanas do mês (seg a dom)
+  const ano=2026, mes=5; // junho = índice 5
+  const primeiroDia=new Date(ano,mes,1);
+  const ultimoDia=new Date(ano,mes+1,0);
+
+  // Semanas: agrupadas de seg a dom
+  const semanas=[];
+  let d=new Date(primeiroDia);
+  // Recuar até segunda
+  while(d.getDay()!==1) d.setDate(d.getDate()-1);
+  while(d<=ultimoDia){
+    const semana=[];
+    for(let i=0;i<7;i++){
+      const dd=new Date(d);
+      if(dd.getMonth()===mes){
+        const str=`${dd.getFullYear()}-${String(dd.getMonth()+1).padStart(2,'0')}-${String(dd.getDate()).padStart(2,'0')}`;
+        const hoje=new Date();
+        const isFuturo=dd>hoje;
+        semana.push({d:str,ok:dias.includes(str)?true:isFuturo?null:false,wd:dd.getDay()});
+      }
+      d.setDate(d.getDate()+1);
+    }
+    if(semana.length>0) semanas.push(semana);
+  }
+
+  // Avaliar cada semana
+  const semanasAvaliadas=semanas.map(s=>{
+    const verificados=s.filter(d=>d.ok!==null);
+    const feitos=s.filter(d=>d.ok===true).length;
+    const totalVerif=verificados.length;
+    return{dias:s, feitos, totalVerif, ok:totalVerif>0&&feitos>=metaSemana};
+  });
+
+  const semsVerif=semanasAvaliadas.filter(s=>s.totalVerif>0);
+  const semsOk=semsVerif.filter(s=>s.ok).length;
+  const pct=semsVerif.length>0?Math.round(semsOk/semsVerif.length*100):0;
+
+  return{semanas:semanasAvaliadas, semsOk, semsTotal:semsVerif.length, pct, passed:pct>=80, meta:metaSemana};
+}
+
+function calcPrazo(w){
+  if(!w||!w.prazo_mob) return null;
+  const mobVerif=w.prazo_mob.filter(d=>d.ok!==null);
+  const mxVerif=w.prazo_mx.filter(d=>d.ok!==null);
+  const mobOk=mobVerif.filter(d=>d.ok).length, mobTotal=mobVerif.length;
+  const mxOk=mxVerif.filter(d=>d.ok).length, mxTotal=mxVerif.length;
+  const mobPct=mobTotal>0?Math.round(mobOk/mobTotal*100):0;
+  const mxPct=mxTotal>0?Math.round(mxOk/mxTotal*100):0;
+  return{
+    mob:{dias:w.prazo_mob, ok:mobOk, total:mobTotal, pct:mobPct, passed:mobPct>=80},
+    mx:{dias:w.prazo_mx, ok:mxOk, total:mxTotal, pct:mxPct, passed:mxPct>=80}
+  };
+}
+
+function countWD(y,m,wd){let c=0,d=new Date(y,m,1);while(d.getMonth()===m){if(d.getDay()===wd)c++;d.setDate(d.getDate()+1);}return c;}
+function dim(y,m){return new Date(y,m+1,0).getDate();}
+function getMetas(y,m){
+  const fri=countWD(y,m,5),mon=countWD(y,m,1),days=dim(y,m),wks=Math.round(days/7);
+  return{posts_mob:wks*6,posts_mx:wks*2,stories_mob:days,stories_mx:fri*3,influencers:2,reuniao_sem:fri,calendario:fri,roteiro:mon,reuniao_men:1};
+}
+function getMonthOptions(){
+  const M=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const now=new Date(),opts=[];
+  for(let y=2025;y<=now.getFullYear()+1;y++)for(let m=0;m<12;m++)opts.push({label:`${M[m]} ${y}`,year:y,month:m});
+  return opts;
+}
+
+function getBlocks(y,m){
+  const mt=getMetas(y,m);
+  return[
+    {id:'producao',title:'Produção e entrega',responsible:'Robson',kpis:[
+      {id:'retrabalho',name:'Taxa de retrabalho',desc:'Correções ÷ posts publicados',meta:'Máx. 20%',type:'retrabalho'},
+      {id:'criacoes',name:'Criações e campanhas',desc:'Demandas extras ÷ total',meta:'80% em até 7 dias',type:'yn'},
+      {id:'qualidade',name:'Qualidade dos materiais',desc:'Salvamentos e compartilhamentos via Windsor.ai',meta:'Mob: saves≥200+shares≥150 · MX: saves≥60+shares≥100',type:'qualidade-auto'},
+    ]},
+    {id:'endo',title:'Endomarketing',responsible:'Dani',kpis:[
+      {id:'acoes',name:'Ações internas',desc:'Mínimo uma ação por mês',meta:'1/mês',type:'yn'},
+      {id:'comunicados',name:'Comunicados',desc:'100% no prazo',meta:'Até 24h',type:'yn'},
+      {id:'vagas',name:'Vagas',desc:'100% no prazo',meta:'Até 24h',type:'yn'},
+    ]},
+    {id:'institucional',title:'Institucional',responsible:'Wel',kpis:[
+      {id:'banco',name:'Banco de imagens',desc:'Atualização mensal',meta:'100% atualizado',type:'yn'},
+      {id:'materia',name:'Material institucional',desc:'Mínimo 1 material complexo',meta:'1/mês',type:'yn'},
+      {id:'sinalizacao',name:'Sinalização',desc:'100% no prazo',meta:'Até 15 dias',type:'yn'},
+    ]},
+    {id:'conteudo',title:'Conteúdo redes',responsible:'Dani',kpis:[
+      {id:'posts_mob',name:'Posts Mobiliaê',desc:'6 posts por semana',meta:`${mt.posts_mob} posts`,type:'counter-auto',total:mt.posts_mob},
+      {id:'posts_mx',name:'Posts MX',desc:'2 posts por semana',meta:`${mt.posts_mx} posts`,type:'counter-auto',total:mt.posts_mx},
+      {id:'postagens_prazo',name:'Postagens no prazo',desc:'Mobiliaê: seg–sáb · MX: ter+qui — verificado via Windsor.ai',meta:'≥80% dos dias previstos',type:'prazo-auto'},
+      {id:'stories_mob',name:'Stories Mobiliaê',desc:'Mínimo 5x por semana — verificado via Windsor.ai',meta:'≥80% das semanas com 5+ stories',type:'stories-auto',conta:'mob'},
+      {id:'stories_mx',name:'Stories MX Móveis',desc:'Mínimo 3x por semana — verificado via Windsor.ai',meta:'≥80% das semanas com 3+ stories',type:'stories-auto',conta:'mx'},
+      {id:'engajamento',name:'Engajamento Mobiliaê',desc:'Total de interações no mês via Windsor.ai',meta:'1.800 interações/mês',type:'counter-auto',total:1800},
+      {id:'engajamento_mx',name:'Engajamento MX Móveis',desc:'Total de interações no mês via Windsor.ai',meta:'1.500 interações/mês',type:'counter-auto',total:1500},
+      {id:'seguidores',name:'Seguidores Mobiliaê',desc:'Novos seguidores no mês via Windsor.ai',meta:'+250/mês',type:'counter-auto',total:250},
+      {id:'seguidores_mx',name:'Seguidores MX Móveis',desc:'Novos seguidores no mês via Windsor.ai',meta:'+180/mês',type:'counter-auto',total:180},
+      {id:'influencers',name:'Influencers Mobiliaê',desc:'Posts com #publimob — detectado via Windsor.ai',meta:`${mt.influencers} influencers`,type:'counter-auto',total:mt.influencers},
+    ]},
+    {id:'inovacao',title:'Inovação e melhoria',responsible:'Wel',kpis:[
+      {id:'processo',name:'Melhoria de processo',desc:'Ao menos 1 por mês',meta:'1/mês',type:'yn'},
+      {id:'formatos',name:'Novos formatos',desc:'Ao menos 1 teste',meta:'1/mês',type:'yn'},
+    ]},
+    {id:'programacao',title:'Programação e resultados',responsible:'Wel',kpis:[
+      {id:'reuniao_sem',name:'Reunião semanal',desc:'Toda sexta',meta:`${mt.reuniao_sem} reuniões`,type:'counter',total:mt.reuniao_sem},
+      {id:'reuniao_men',name:'Reunião mensal',desc:'Última sexta',meta:'1/mês',type:'counter',total:1},
+      {id:'calendario',name:'Calendário',desc:'Toda sexta',meta:`${mt.calendario} preenchimentos`,type:'counter',total:mt.calendario},
+      {id:'roteiro',name:'Roteiro',desc:'Até segunda manhã',meta:`${mt.roteiro} roteiros`,type:'counter',total:mt.roteiro},
+    ]},
+  ];
+}
+
+let curY=new Date().getFullYear(), curM=new Date().getMonth();
+let state={}, history=[], dashCharts=[];
+try{history=JSON.parse(localStorage.getItem('kpi_mx_v3')||'[]');}catch(e){}
+
+function initState(y,m){
+  const B=getBlocks(y,m),w=getW(y,m); state={};
+  B.forEach(b=>{state[b.id]={};b.kpis.forEach(k=>{
+    if(k.type==='counter-auto'){
+      if(w&&k.id==='posts_mob')          state[b.id][k.id]=w.posts_mob||0;
+      else if(w&&k.id==='posts_mx')      state[b.id][k.id]=w.posts_mx||0;
+      else if(w&&k.id==='influencers')   state[b.id][k.id]=w.influencers_mob||0;
+      else if(w&&k.id==='engajamento')   state[b.id][k.id]=w.int_mob||0;
+      else if(w&&k.id==='engajamento_mx')state[b.id][k.id]=w.int_mx||0;
+      else if(w&&k.id==='seguidores')    state[b.id][k.id]=w.seg_mob||0;
+      else if(w&&k.id==='seguidores_mx') state[b.id][k.id]=w.seg_mx||0;
+      else state[b.id][k.id]=0;
+    } else if(k.type==='prazo-auto'||k.type==='qualidade-auto'||k.type==='stories-auto'){
+      state[b.id][k.id]=null;
+    } else {
+      state[b.id][k.id]=(k.type==='counter'||k.type==='retrabalho')?0:null;
+    }
+  });});
+}
+function loadMonth(y,m){
+  const e=history.find(h=>h.key===`${y}-${m}`);
+  if(e){
+    state=JSON.parse(JSON.stringify(e.state));
+    const w=getW(y,m);
+    if(w){
+      state.conteudo.posts_mob=w.posts_mob||0;
+      state.conteudo.posts_mx=w.posts_mx||0;
+      if(w.influencers_mob!=null) state.conteudo.influencers=w.influencers_mob;
+      if(w.int_mob!=null)         state.conteudo.engajamento=w.int_mob;
+      if(w.int_mx!=null)          state.conteudo.engajamento_mx=w.int_mx;
+      if(w.seg_mob!=null)         state.conteudo.seguidores=w.seg_mob;
+      if(w.seg_mx!=null)          state.conteudo.seguidores_mx=w.seg_mx;
+    }
+    const inp=document.getElementById('inp-who');if(inp&&e.who)inp.value=e.who;
+  } else initState(y,m);
+}
+function postsPublicados(){return(state.conteudo&&state.conteudo.posts_mob||0)+(state.conteudo&&state.conteudo.posts_mx||0);}
+
+function kpiDone(k,bst,st){
+  if(k.type==='tbd') return null;
+  const v=bst[k.id];
+  if(k.type==='retrabalho'){const pub=postsPublicados();if(pub===0)return null;return(v||0)/pub<=0.20;}
+  if(k.type==='counter'||k.type==='counter-auto') return(v||0)>=k.total;
+  if(k.type==='prazo-auto'){const p=calcPrazo(getW(curY,curM));return p?p.mob.passed&&p.mx.passed:null;}
+  if(k.type==='qualidade-auto'){const q=calcQualidade(getW(curY,curM));return q?q.mob.ok&&q.mx.ok:null;}
+  if(k.type==='stories-auto'){const meta=k.conta==='mob'?5:3;const s=calcStories(getW(curY,curM),k.conta,meta);return s?s.passed:null;}
+  return v===true;
+}
+function blockOk(bid,y,m,st){
+  return getBlocks(y,m).find(b=>b.id===bid).kpis.filter(k=>k.type!=='tbd').every(k=>kpiDone(k,st[bid],st)===true);
+}
+function blockStatus(bid){
+  const block=getBlocks(curY,curM).find(b=>b.id===bid);
+  const nonTbd=block.kpis.filter(k=>k.type!=='tbd');
+  const allNull=nonTbd.every(k=>(k.type==='counter'||k.type==='counter-auto'||k.type==='retrabalho')?!state[bid][k.id]:k.type==='prazo-auto'||k.type==='qualidade-auto'||k.type==='stories-auto'?!getW(curY,curM):state[bid][k.id]===null);
+  if(allNull) return 'pending';
+  if(blockOk(bid,curY,curM,state)) return 'ok';
+  return nonTbd.some(k=>kpiDone(k,state[bid],state)===false)?'fail':'partial';
+}
+
+function renderBlocks(){
+  const B=getBlocks(curY,curM),c=document.getElementById('blocks-container');if(!c)return;
+  c.innerHTML=B.map((block,bi)=>{
+    const st=blockStatus(block.id);
+    const stLabel={pending:'Não preenchido',ok:'Atingido',fail:'Zerado',partial:'Em andamento'}[st];
+    const stClass={pending:'s-pending',ok:'s-ok',fail:'s-fail',partial:'s-partial'}[st];
+    const kpisHtml=block.kpis.map(k=>{
+      const v=state[block.id][k.id];
+      if(k.type==='tbd') return `<div class="kpi-row"><div class="kpi-top"><div class="kpi-info"><div class="kpi-name">${k.name}</div><div class="kpi-desc">${k.desc}</div><span class="tbd-badge"><i class="ti ti-clock" style="font-size:10px;margin-right:3px"></i>Meta a definir</span></div></div></div>`;
+      if(k.type==='retrabalho'){
+        const corr=state[block.id][k.id]||0,pub=postsPublicados();
+        const pctR=pub>0?Math.round(corr/pub*100):0,okR=pub>0&&pctR<=20,alertR=pub>0&&pctR>20;
+        const bc=alertR?RED:ORANGE;
+        const msg=pub===0?'Aguardando posts':alertR?`⚠ ${pctR}% — acima do limite`:pctR+'%'+(okR?' — dentro do limite':'');
+        return `<div class="kpi-row"><div class="kpi-top"><div class="kpi-info"><div class="kpi-name">${k.name}</div><div class="kpi-desc">${k.desc}</div><div class="kpi-meta">Base: ${pub} posts · Meta: máx. 20%</div></div></div><div class="counter-wrap"><div style="display:flex;align-items:center;gap:10px;margin-bottom:7px"><label style="font-size:12px;color:#888">Correções:</label><input type="number" min="0" value="${corr}" oninput="setRetrabalho(this.value)" style="width:65px;font-size:14px;padding:4px 7px;border:1px solid #ddd;border-radius:6px;text-align:center;outline:none"><span style="font-size:12px;color:#888">de ${pub}</span></div><div class="counter-progress"><div class="counter-bar" style="width:${Math.min(pctR,100)}%;background:${bc}"></div></div><div class="counter-stat" style="color:${bc};font-weight:${alertR||okR?600:400}">${msg}</div></div></div>`;
+      }
+      if(k.type==='prazo-auto'){
+        const w=getW(curY,curM), p=calcPrazo(w);
+        if(!p) return `<div class="kpi-row"><div class="kpi-top"><div class="kpi-info"><div class="kpi-name">${k.name} <span style="font-size:10px;color:#fc6c3f;font-weight:600;padding:1px 7px;background:rgba(252,108,63,0.08);border-radius:20px;margin-left:4px">Windsor.ai</span></div><div class="kpi-meta" style="color:#bbb">Sem dados para este mês</div></div></div></div>`;
+        const dias_nomes=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+        function renderDias(dados,cor){
+          return dados.map(d=>{
+            const parts=d.d.split('-');
+            const dt=new Date(parseInt(parts[0]),parseInt(parts[1])-1,parseInt(parts[2]));
+            const dia=dt.getDate(), diaSem=dias_nomes[dt.getDay()];
+            const bg=d.ok===true?cor+'15':d.ok===false?'rgba(0,0,0,0.04)':'#f9f9f9';
+            const border=d.ok===true?cor:d.ok===false?'#ddd':'#e8e8e8';
+            const textColor=d.ok===true?cor:d.ok===false?'#ccc':'#ddd';
+            return `<div style="display:flex;flex-direction:column;align-items:center;gap:2px;min-width:34px">
+              <div style="font-size:9px;color:#bbb">${diaSem}</div>
+              <div style="width:30px;height:30px;border-radius:6px;border:1px solid ${border};background:${bg};display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:10px;font-weight:600;color:${textColor}">
+                ${dia}${d.ok===true?`<i class="ti ti-check" style="font-size:7px"></i>`:''}
+              </div>
+            </div>`;
+          }).join('');
+        }
+        const geral=p.mob.passed&&p.mx.passed, sc=geral?ORANGE:p.mob.passed||p.mx.passed?'#e65100':RED;
+        return `<div class="kpi-row"><div class="kpi-top"><div class="kpi-info">
+          <div class="kpi-name">${k.name} <span style="font-size:10px;color:#fc6c3f;font-weight:600;padding:1px 7px;background:rgba(252,108,63,0.08);border-radius:20px;margin-left:4px">Windsor.ai</span></div>
+        </div></div>
+        <div class="counter-wrap" style="margin-top:10px">
+          <div style="margin-bottom:8px">
+            <div style="font-size:11px;font-weight:600;color:#555;margin-bottom:5px">Mobiliaê (seg–sáb) · ${p.mob.ok}/${p.mob.total} dias · ${p.mob.pct}%</div>
+            <div style="display:flex;flex-wrap:wrap;gap:5px">${renderDias(p.mob.dias,ORANGE)}</div>
+          </div>
+          <div style="margin-bottom:8px">
+            <div style="font-size:11px;font-weight:600;color:#555;margin-bottom:5px">MX Móveis (ter+qui) · ${p.mx.ok}/${p.mx.total} dias · ${p.mx.pct}%</div>
+            <div style="display:flex;flex-wrap:wrap;gap:5px">${renderDias(p.mx.dias,ORANGE)}</div>
+          </div>
+          <div class="counter-stat" style="color:${sc};font-weight:600">${geral?'✓ Ambas dentro do prazo (≥80%)':p.mob.passed||p.mx.passed?'⚠ Uma marca abaixo de 80%':'✗ Ambas abaixo de 80%'}</div>
+        </div></div>`;
+      }
+      if(k.type==='stories-auto'){
+        const meta=k.conta==='mob'?5:3;
+        const s=calcStories(getW(curY,curM),k.conta,meta);
+        const dias_nomes=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+        if(!s) return `<div class="kpi-row"><div class="kpi-top"><div class="kpi-info"><div class="kpi-name">${k.name} <span style="font-size:10px;color:#fc6c3f;font-weight:600;padding:1px 7px;background:rgba(252,108,63,0.08);border-radius:20px;margin-left:4px">Windsor.ai</span></div><div class="kpi-meta" style="color:#bbb">Sem dados</div></div></div></div>`;
+        const semanasHtml=s.semanas.map((sem,i)=>{
+          const feitos=sem.feitos, total=sem.dias.length;
+          const semOk=sem.ok, semPendente=sem.totalVerif===0;
+          const sc=semOk?ORANGE:semPendente?'#ddd':'#e65100';
+          const diasHtml=sem.dias.map(d=>{
+            const parts=d.d.split('-');
+            const dt=new Date(parseInt(parts[0]),parseInt(parts[1])-1,parseInt(parts[2]));
+            const diaN=dt.getDate(), diaSem=dias_nomes[dt.getDay()];
+            const bg=d.ok===true?ORANGE+'15':d.ok===false?'rgba(0,0,0,0.04)':'#f9f9f9';
+            const border=d.ok===true?ORANGE:d.ok===false?'#ddd':'#e8e8e8';
+            const tc=d.ok===true?ORANGE:d.ok===false?'#ccc':'#ddd';
+            return `<div style="display:flex;flex-direction:column;align-items:center;gap:2px;min-width:34px">
+              <div style="font-size:9px;color:#bbb">${diaSem}</div>
+              <div style="width:30px;height:30px;border-radius:6px;border:1px solid ${border};background:${bg};display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:10px;font-weight:600;color:${tc}">
+                ${diaN}${d.ok===true?'<i class="ti ti-check" style="font-size:7px"></i>':''}
+              </div>
+            </div>`;
+          }).join('');
+          return `<div style="margin-bottom:8px">
+            <div style="font-size:10px;font-weight:600;color:${sc};margin-bottom:4px">Semana ${i+1} · ${feitos}/${meta} stories${semOk?' ✓':semPendente?' (pendente)':''}</div>
+            <div style="display:flex;flex-wrap:wrap;gap:4px">${diasHtml}</div>
+          </div>`;
+        }).join('');
+        const sc2=s.passed?ORANGE:s.semsTotal===0?'#ddd':'#e65100';
+        return `<div class="kpi-row"><div class="kpi-top"><div class="kpi-info">
+          <div class="kpi-name">${k.name} <span style="font-size:10px;color:#fc6c3f;font-weight:600;padding:1px 7px;background:rgba(252,108,63,0.08);border-radius:20px;margin-left:4px">Windsor.ai</span></div>
+        </div></div>
+        <div class="counter-wrap" style="margin-top:10px">
+          ${semanasHtml}
+          <div class="counter-stat" style="color:${sc2};font-weight:600">${s.semsOk}/${s.semsTotal} semanas atingidas · ${s.pct}%${s.passed?' — meta atingida!':''}</div>
+        </div></div>`;
+      }
+      if(k.type==='qualidade-auto'){
+        const w=getW(curY,curM), q=calcQualidade(w);
+        if(!q) return `<div class="kpi-row"><div class="kpi-top"><div class="kpi-info"><div class="kpi-name">${k.name} <span style="font-size:10px;color:#fc6c3f;font-weight:600;padding:1px 7px;background:rgba(252,108,63,0.08);border-radius:20px;margin-left:4px">Windsor.ai</span></div><div class="kpi-meta" style="color:#bbb">Sem dados para este mês</div></div></div></div>`;
+        function barIndi(label,val,meta,pct){
+          const c=pct>=100?ORANGE:pct>=50?'#e65100':RED;
+          return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+            <span style="font-size:11px;color:#888;width:130px;flex-shrink:0">${label}</span>
+            <div style="flex:1;height:4px;background:#f0f0f0;border-radius:10px;overflow:hidden"><div style="width:${pct}%;height:100%;background:${c};border-radius:10px"></div></div>
+            <span style="font-size:11px;color:${c};font-weight:600;width:70px;text-align:right">${val}/${meta} · ${pct}%</span>
+          </div>`;
+        }
+        const geral=q.mob.ok&&q.mx.ok, sc=geral?ORANGE:q.mob.ok||q.mx.ok?'#e65100':RED;
+        return `<div class="kpi-row"><div class="kpi-top"><div class="kpi-info">
+          <div class="kpi-name">${k.name} <span style="font-size:10px;color:#fc6c3f;font-weight:600;padding:1px 7px;background:rgba(252,108,63,0.08);border-radius:20px;margin-left:4px">Windsor.ai</span></div>
+        </div></div>
+        <div class="counter-wrap" style="margin-top:8px">
+          <div style="font-size:11px;font-weight:600;color:#555;margin-bottom:5px">Mobiliaê · média ${q.mob.media}%</div>
+          ${barIndi('Salvamentos',q.mob.saves.val,q.mob.saves.meta,q.mob.saves.pct)}
+          ${barIndi('Compartilhamentos',q.mob.shares.val,q.mob.shares.meta,q.mob.shares.pct)}
+          <div style="font-size:11px;font-weight:600;color:#555;margin:8px 0 5px">MX Móveis · média ${q.mx.media}%</div>
+          ${barIndi('Salvamentos',q.mx.saves.val,q.mx.saves.meta,q.mx.saves.pct)}
+          ${barIndi('Compartilhamentos',q.mx.shares.val,q.mx.shares.meta,q.mx.shares.pct)}
+          <div class="counter-stat" style="color:${sc};font-weight:600;margin-top:6px">${geral?'✓ Ambas as marcas atingiram a meta':q.mob.ok||q.mx.ok?'⚠ Uma marca abaixo da meta':'✗ Ambas abaixo da meta'}</div>
+        </div></div>`;
+      }
+      if(k.type==='counter-auto'){
+        const done=v||0,pct=k.total>0?Math.round(done/k.total*100):0,comp=done>=k.total;
+        const c=comp?ORANGE:pct>=50?ORANGE:RED;
+        const useDots=['posts_mob','posts_mx','influencers'].includes(k.id);
+        if(!useDots){
+          return `<div class="kpi-row"><div class="kpi-top"><div class="kpi-info"><div class="kpi-name">${k.name} <span style="font-size:10px;color:#fc6c3f;font-weight:600;padding:1px 7px;background:rgba(252,108,63,0.08);border-radius:20px;margin-left:4px">Windsor.ai</span></div></div></div>
+          <div class="counter-wrap">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+              <span style="font-size:11px;color:#888;width:130px;flex-shrink:0">Realizado</span>
+              <div style="flex:1;height:5px;background:#f0f0f0;border-radius:10px;overflow:hidden"><div style="width:${Math.min(pct,100)}%;height:100%;background:${c};border-radius:10px"></div></div>
+              <span style="font-size:11px;color:${c};font-weight:600;width:90px;text-align:right">${done.toLocaleString('pt-BR')}/${k.total.toLocaleString('pt-BR')} · ${pct}%</span>
+            </div>
+            <div class="counter-stat" style="color:${c};font-weight:${comp?600:400}">${comp?'✓ Meta atingida!':pct+'% — '+k.meta}</div>
+          </div></div>`;
+        }
+        const dots=Array.from({length:k.total},(_,i)=>`<div class="dot ${i<done?'done':''}" style="cursor:default;opacity:${i<done?1:0.4}">${i+1}</div>`).join('');
+        return `<div class="kpi-row"><div class="kpi-top"><div class="kpi-info"><div class="kpi-name">${k.name} <span style="font-size:10px;color:#fc6c3f;font-weight:600;padding:1px 7px;background:rgba(252,108,63,0.08);border-radius:20px;margin-left:4px">Windsor.ai</span></div><div class="kpi-meta">Meta: ${k.meta} · preenchimento automático</div></div></div><div class="counter-wrap"><div class="counter-label">${done} de ${k.total}</div><div class="counter-dots">${dots}</div><div class="counter-progress"><div class="counter-bar" style="width:${Math.min(pct,100)}%"></div></div><div class="counter-stat">${pct}%${comp?' — meta atingida!':''}</div></div></div>`;
+      }
+      if(k.type==='counter'){
+        const done=v||0,pct=k.total>0?Math.round(done/k.total*100):0,comp=done>=k.total;
+        const dots=Array.from({length:k.total},(_,i)=>`<div class="dot ${i<done?'done':''}" onclick="toggleDot('${block.id}','${k.id}',${i},${k.total})">${i+1}</div>`).join('');
+        return `<div class="kpi-row"><div class="kpi-top"><div class="kpi-info"><div class="kpi-name">${k.name}</div><div class="kpi-desc">${k.desc}</div><div class="kpi-meta">Meta: ${k.meta}</div></div></div><div class="counter-wrap"><div class="counter-label">${done} de ${k.total}</div><div class="counter-dots">${dots}</div><div class="counter-progress"><div class="counter-bar" style="width:${Math.min(pct,100)}%"></div></div><div class="counter-stat">${pct}%${comp?' — meta atingida!':''}</div></div></div>`;
+      }
+      return `<div class="kpi-row"><div class="kpi-top"><div class="yn-wrap"><button class="yn yes ${v===true?'active':''}" onclick="setYN('${block.id}','${k.id}',true)"><i class="ti ti-check"></i></button><button class="yn no ${v===false?'active':''}" onclick="setYN('${block.id}','${k.id}',false)"><i class="ti ti-x"></i></button></div><div class="kpi-info"><div class="kpi-name">${k.name}</div><div class="kpi-desc">${k.desc}</div><div class="kpi-meta">Meta: ${k.meta}</div></div></div></div>`;
+    }).join('');
+    return `<div class="block-card"><div class="block-header" onclick="toggleBlock('${block.id}')"><div class="block-title-wrap"><i class="ti ti-layout-grid" style="color:${ORANGE};font-size:15px"></i><span class="block-title">${block.title}</span><span class="block-resp">Supervisão: ${block.responsible}</span></div><div style="display:flex;align-items:center;gap:8px"><span class="block-status ${stClass}">${stLabel}</span><i class="ti ti-chevron-down chevron ${bi===0?'open':''}" id="chev-${block.id}"></i></div></div><div class="block-body ${bi===0?'open':''}" id="body-${block.id}">${kpisHtml}</div><div class="block-footer"><i class="ti ti-info-circle"></i> Todos os KPIs devem ser atingidos para computar o bloco</div></div>`;
+  }).join('');
+}
+
+function toggleBlock(bid){const b=document.getElementById('body-'+bid),c=document.getElementById('chev-'+bid);const o=b.classList.toggle('open');c.classList.toggle('open',o);}
+function setYN(bid,kid,val){state[bid][kid]=val;renderBlocks();}
+function toggleDot(bid,kid,idx,total){const cur=state[bid][kid]||0;state[bid][kid]=idx<cur?idx:Math.min(idx+1,total);renderBlocks();}
+function setRetrabalho(v){state.producao.retrabalho=Math.max(0,parseInt(v)||0);renderBlocks();}
+
+async function saveData(){
+  const who=document.getElementById('inp-who').value;
+  const M=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const key=`${curY}-${curM}`,label=`${M[curM]} ${curY}`;
+  const entry={key,month:label,year:curY,monthIdx:curM,who,state:JSON.parse(JSON.stringify(state)),saved:new Date().toISOString()};
+  const idx=history.findIndex(h=>h.key===key);
+  if(idx>=0)history[idx]=entry;else history.push(entry);
+  // Salva no Firebase e localStorage como fallback
+  const saved = window._fbSave ? await window._fbSave('history', history) : false;
+  if(!saved) try{localStorage.setItem('kpi_mx_v3',JSON.stringify(history));}catch(e){}
+  else try{localStorage.setItem('kpi_mx_v3',JSON.stringify(history));}catch(e){}
+  populateDashSelect();
+  alert('Dados salvos!');
+}
+function onMonthChange(){
+  const sel=document.getElementById('sel-month'),opt=sel.options[sel.selectedIndex];
+  curY=parseInt(opt.dataset.year);curM=parseInt(opt.dataset.month);
+  loadMonth(curY,curM);renderBlocks();
+}
+
+/* ── DASHBOARD ── */
+function kpiProgress(k,bst,st){
+  // Retorna valor entre 0 e 1 representando o progresso proporcional do KPI
+  if(k.type==='tbd') return null;
+  const v=bst[k.id];
+  if(k.type==='yn') return v===true?1:v===false?0:null;
+  if(k.type==='counter'||k.type==='counter-auto'){
+    if(k.total===0) return null;
+    return Math.min((v||0)/k.total,1);
+  }
+  if(k.type==='retrabalho'){
+    const pub=(st.producao&&st.producao.retrabalho!==undefined)?
+      (st.conteudo&&st.conteudo.posts_mob||0)+(st.conteudo&&st.conteudo.posts_mx||0):0;
+    if(pub===0) return null;
+    const pct=(v||0)/pub;
+    return pct<=0.20?1:Math.max(0,1-(pct-0.20)/0.20);
+  }
+  if(k.type==='qualidade-auto'){
+    const q=calcQualidade(getW(curY,curM));
+    return q?Math.min((q.mob.media+q.mx.media)/200,1):null;
+  }
+  if(k.type==='prazo-auto'){
+    const p=calcPrazo(getW(curY,curM));
+    if(!p) return null;
+    return Math.min((p.mob.pct+p.mx.pct)/200,1);
+  }
+  if(k.type==='stories-auto'){
+    const meta=k.conta==='mob'?5:3;
+    const s=calcStories(getW(curY,curM),k.conta,meta);
+    return s?Math.min(s.pct/100,1):null;
+  }
+  return null;
+}
+
+function blockScoreDash(b,st){
+  const nonTbd=b.kpis.filter(k=>k.type!=='tbd');
+  const progresses=nonTbd.map(k=>kpiProgress(k,st[b.id],st));
+  const filled=progresses.filter(p=>p!==null);
+  if(!filled.length) return{done:0,total:nonTbd.length,pct:0,status:'pending'};
+  const avg=filled.reduce((a,b)=>a+b,0)/nonTbd.length; // média sobre todos (não preenchidos = 0)
+  const done=progresses.filter(p=>p===1).length;
+  const allDone=done===nonTbd.length;
+  const anyFail=progresses.some(p=>p===0);
+  return{
+    done:Math.round(avg*nonTbd.length), // KPIs equivalentes atingidos
+    total:nonTbd.length,
+    pct:Math.round(avg*100),
+    status:allDone?'ok':anyFail&&avg<0.5?'fail':'partial'
+  };
+}
+
+function populateDashSelect(){
+  const MN=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const sel=document.getElementById('dash-sel-month');if(!sel)return;
+  const prev=sel.value;sel.innerHTML='';
+  // Meses salvos no histórico
+  const keys=new Set(history.map(h=>h.key));
+  // Adicionar meses do WINDSOR_DATA que ainda não estão no histórico
+  const wKeys=Object.keys(WINDSOR_DATA).sort((a,b)=>{
+    const [ay,am]=a.split('-').map(Number),[by,bm]=b.split('-').map(Number);
+    return ay!==by?ay-by:am-bm;
+  });
+  const allEntries=[...history];
+  wKeys.forEach(k=>{
+    if(!keys.has(k)){
+      const [y,m]=k.split('-').map(Number);
+      allEntries.push({key:k,month:`${MN[m]} ${y}`,year:y,monthIdx:m,state:null});
+    }
+  });
+  allEntries.sort((a,b)=>a.year!==b.year?b.year-a.year:b.monthIdx-a.monthIdx);
+  if(!allEntries.length){sel.innerHTML='<option>Nenhum mês salvo</option>';return;}
+  allEntries.forEach(e=>{const opt=document.createElement('option');opt.value=e.key;opt.textContent=e.month;sel.appendChild(opt);});
+  if(prev&&[...sel.options].find(o=>o.value===prev))sel.value=prev;
+  else{
+    // Selecionar mês atual por padrão se disponível
+    const curKey=`${new Date().getFullYear()}-${new Date().getMonth()}`;
+    const curOpt=[...sel.options].find(o=>o.value===curKey);
+    if(curOpt)sel.value=curKey;
+  }
+}
+
+function renderDash(){
+  const sel=document.getElementById('dash-sel-month');
+  const hasWindsor=Object.keys(WINDSOR_DATA).length>0;
+  if(!history.length&&!hasWindsor){
+    document.getElementById('metrics-area').innerHTML='';
+    document.getElementById('pizzas-area').innerHTML='<div class="no-data"><i class="ti ti-chart-pie" style="font-size:5vh;display:block;margin-bottom:1vh"></i>Nenhum dado salvo ainda.<br>Preencha e salve um mês primeiro.</div>';
+    return;
+  }
+  const MN2=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const key=sel?sel.value:(history.length?history[history.length-1].key:'');
+  let entry=history.find(h=>h.key===key);
+  if(!entry){
+    // Mês do WINDSOR_DATA ainda não salvo no histórico — criar estado vazio
+    const [ey,em]=key.split('-').map(Number);
+    entry={key,month:`${MN2[em]} ${ey}`,year:ey,monthIdx:em,state:null};
+  }
+  const B=getBlocks(entry.year,entry.monthIdx);
+  const st=entry.state?JSON.parse(JSON.stringify(entry.state)):{};
+  B.forEach(b=>{if(!st[b.id])st[b.id]={};});
+  const w=getW(entry.year,entry.monthIdx);
+  if(w&&st.conteudo){
+    st.conteudo.posts_mob=w.posts_mob||0;
+    st.conteudo.posts_mx=w.posts_mx||0;
+    if(w.influencers_mob!=null) st.conteudo.influencers=w.influencers_mob;
+    if(w.int_mob!=null)         st.conteudo.engajamento=w.int_mob;
+    if(w.int_mx!=null)          st.conteudo.engajamento_mx=w.int_mx;
+    if(w.seg_mob!=null)         st.conteudo.seguidores=w.seg_mob;
+    if(w.seg_mx!=null)          st.conteudo.seguidores_mx=w.seg_mx;
+  }
+  const totalB=B.length,achB=B.filter(b=>blockScoreDash(b,st).status==='ok').length;
+  const totalK=B.reduce((a,b)=>a+b.kpis.filter(k=>k.type!=='tbd').length,0);
+  const achK=B.reduce((s,b)=>s+b.kpis.filter(k=>kpiDone(k,st[b.id],st)===true).length,0);
+  const pctB=Math.round(achB/totalB*100),pctK=Math.round(achK/totalK*100);
+
+  dashCharts.forEach(c=>c.destroy()); dashCharts=[];
+
+  document.getElementById('pizzas-area').innerHTML=B.map(b=>{
+    const sc=blockScoreDash(b,st);
+    return `<div class="pizza-card"><div class="pizza-title">${b.title}</div><div class="pizza-chart-wrap"><canvas id="pc-${b.id}"></canvas></div><div class="pizza-stats"><span class="pizza-stat"><span class="pizza-dot" style="background:${ORANGE}"></span>${sc.pct}% concluído</span></div></div>`;
+  }).join('');
+
+  B.forEach(b=>{
+    const sc=blockScoreDash(b,st);
+    const isEmpty=sc.pct===0&&sc.status==='pending';
+    const c=new Chart(document.getElementById('pc-'+b.id),{
+      type:'doughnut',
+      data:{labels:['Progresso','Restante'],datasets:[{
+        data:isEmpty?[1,0]:[sc.pct,Math.max(100-sc.pct,0)],
+        backgroundColor:isEmpty?[GRAY,GRAY]:[ORANGE,RED],
+        borderWidth:0,hoverOffset:0
+      }]},
+      options:{responsive:true,maintainAspectRatio:true,cutout:'68%',plugins:{legend:{display:false},tooltip:{enabled:false}},animation:{duration:600}},
+      plugins:[{id:'ct',afterDraw(chart){
+        const{ctx,chartArea}=chart;
+        const cx=chartArea.left+chartArea.width/2,cy=chartArea.top+chartArea.height/2;
+        const fs=Math.round(chartArea.width*0.12);
+        ctx.save();ctx.font=`bold ${fs}px 'Segoe UI',sans-serif`;
+        ctx.fillStyle=isEmpty?GRAY:sc.status==='ok'?ORANGE:sc.pct>0?ORANGE:RED;
+        ctx.textAlign='center';ctx.textBaseline='middle';
+        ctx.fillText(sc.pct+'%',cx,cy);ctx.restore();
+      }}]
+    });
+    dashCharts.push(c);
+  });
+
+  // Mini gráficos laterais — usa mesmo padrão CSS das pizzas
+  const meses=['Jan','Fev','Mar','Abr','Mai','Jun'];
+  function miniChart(id,data,color,meta){
+    const el=document.getElementById(id); if(!el)return;
+    const c=new Chart(el,{
+      type:'line',
+      data:{labels:meses,datasets:[
+        {data,borderColor:color,backgroundColor:color+'18',fill:true,tension:0.35,borderWidth:2,pointRadius:3,pointBackgroundColor:color},
+        {data:Array(6).fill(meta),borderColor:'#ddd',borderDash:[4,3],fill:false,tension:0,borderWidth:1.5,pointRadius:0}
+      ]},
+      options:{responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.datasetIndex===0?ctx.raw.toLocaleString('pt-BR'):null}}},
+        scales:{
+          x:{ticks:{font:{size:9},color:'#bbb',maxRotation:0},grid:{display:false},border:{display:false}},
+          y:{display:false,min:0}
+        },
+        animation:{duration:400}}
+    });
+    dashCharts.push(c);
+  }
+  // Dados históricos Jan-Mai fixos + Jun dinâmico via Windsor
+  const wDash=getW(entry.year,entry.monthIdx);
+  const segMobJun=wDash?wDash.seg_mob:1299;
+  const segMxJun=wDash?wDash.seg_mx:192;
+  const intMobJun=wDash?wDash.int_mob:1410;
+  const intMxJun=wDash?wDash.int_mx:814;
+
+  miniChart('sc-seg-mob',[277,457,637,817,1088,segMobJun],'#fc6c3f',250);
+  miniChart('sc-seg-mx',[8135,8331,8527,8723,9021,segMxJun],'#555',180);
+  miniChart('sc-int-mob',[553,1338,1499,1067,1980,intMobJun],'#fc6c3f',1800);
+  miniChart('sc-int-mx',[2024,1912,1069,1370,1769,intMxJun],'#555',1500);
+
+  // Atualiza cards laterais com valores reais do Windsor
+  if(wDash){
+    const fmt=n=>n.toLocaleString('pt-BR');
+    const pctSegMob=Math.round(wDash.seg_mob/250*100);
+    const pctSegMx=Math.round(wDash.seg_mx/180*100);
+    const pctIntMob=Math.round(wDash.int_mob/1800*100);
+    const pctIntMx=Math.round(wDash.int_mx/1500*100);
+
+    const el=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
+    el('val-seg-mob', wDash.followers_mob!=null ? fmt(wDash.followers_mob) : fmt(wDash.seg_mob));
+    el('sub-seg-mob',`+${fmt(wDash.seg_mob)} no mês · ${pctSegMob>=100?'✓ meta batida':pctSegMob+'% da meta'}`);
+    el('val-seg-mx', wDash.followers_mx!=null ? fmt(wDash.followers_mx) : fmt(wDash.seg_mx));
+    el('sub-seg-mx',`+${fmt(wDash.seg_mx)} no mês · ${pctSegMx>=100?'✓ meta batida':pctSegMx+'% da meta'}`);
+    el('val-int-mob',fmt(wDash.int_mob));
+    el('sub-int-mob',`${pctIntMob}% da meta · ${pctIntMob>=100?'meta atingida':'mês em andamento'}`);
+    el('val-int-mx',fmt(wDash.int_mx));
+    el('sub-int-mx',`${pctIntMx}% da meta · ${pctIntMx>=100?'meta atingida':'mês em andamento'}`);
+  }
+}
+
+function switchTab(tab){
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',(i===0&&tab==='fill')||(i===1&&tab==='dash')));
+  const fill=document.getElementById('tab-fill');
+  const dash=document.getElementById('tab-dash');
+  if(tab==='fill'){fill.classList.add('active');dash.classList.remove('active');}
+  else{fill.classList.remove('active');dash.classList.add('active');populateDashSelect();renderDash();}
+}
+
+async function initApp(){
+  const sel=document.getElementById('sel-month');
+  getMonthOptions().forEach(o=>{
+    const opt=document.createElement('option');opt.value=o.label;opt.textContent=o.label;
+    opt.dataset.year=o.year;opt.dataset.month=o.month;
+    if(o.year===curY&&o.month===curM)opt.selected=true;
+    sel.appendChild(opt);
+  });
+  // Carrega do Firebase, senão usa localStorage
+  if(window._fbLoad){
+    const fbData=await window._fbLoad('history');
+    if(fbData)history=fbData;
+    else try{history=JSON.parse(localStorage.getItem('kpi_mx_v3')||'[]');}catch(e){}
+  } else {
+    try{history=JSON.parse(localStorage.getItem('kpi_mx_v3')||'[]');}catch(e){}
+  }
+  initState(curY,curM);
+  loadMonth(curY,curM);
+  renderBlocks();
+  populateDashSelect();
+  // Abre no dashboard por padrão
+  switchTab('dash');
+  // Escuta mudanças em tempo real — atualiza TV automaticamente
+  if(window._fbListen){
+    window._fbListen('history',data=>{
+      history=data;
+      try{localStorage.setItem('kpi_mx_v3',JSON.stringify(history));}catch(e){}
+      populateDashSelect();
+      if(document.getElementById('tab-dash').classList.contains('active'))renderDash();
+    });
+  }
+}
+
+if(window._firebaseReady){initApp();}
+else{
+  document.addEventListener('firebase-ready',initApp,{once:true});
+  setTimeout(()=>{if(!window._firebaseReady)initApp();},3000);
+}
+</script>
+</body>
+</html>

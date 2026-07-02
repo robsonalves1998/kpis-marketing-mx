@@ -1,0 +1,6 @@
+# Local Netlify folder
+.netlify
+.netlify-deploy.ps1
+
+# Local Claude settings
+.claude
