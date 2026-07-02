@@ -315,14 +315,25 @@ const WINDSOR_DATA={
     ]
   },
   '2026-6':{
-    posts_mob:0, posts_mx:0, influencers_mob:0,
-    int_mob:1, int_mx:2, seg_mob:5, seg_mx:1,
-    followers_mob:1666, followers_mx:9225,
-    saves_mob:0, saves_mx:0, shares_mob:0, shares_mx:1,
+    posts_mob:1, posts_mx:0, influencers_mob:0,
+    int_mob:323, int_mx:18, seg_mob:100, seg_mx:-2,
+    followers_mob:1761, followers_mx:9222,
+    saves_mob:81, saves_mx:2, shares_mob:43, shares_mx:5,
     stories_mob:[],
     stories_mx:[],
-    prazo_mob:[],
-    prazo_mx:[]
+    prazo_mob:[
+      {d:'2026-07-01',ok:null}, {d:'2026-07-02',ok:null}, {d:'2026-07-03',ok:null}, {d:'2026-07-04',ok:null},
+      {d:'2026-07-06',ok:null}, {d:'2026-07-07',ok:null}, {d:'2026-07-08',ok:null}, {d:'2026-07-09',ok:null}, {d:'2026-07-10',ok:null}, {d:'2026-07-11',ok:null},
+      {d:'2026-07-13',ok:null}, {d:'2026-07-14',ok:null}, {d:'2026-07-15',ok:null}, {d:'2026-07-16',ok:null}, {d:'2026-07-17',ok:null}, {d:'2026-07-18',ok:null},
+      {d:'2026-07-20',ok:null}, {d:'2026-07-21',ok:null}, {d:'2026-07-22',ok:null}, {d:'2026-07-23',ok:null}, {d:'2026-07-24',ok:null}, {d:'2026-07-25',ok:null},
+      {d:'2026-07-27',ok:null}, {d:'2026-07-28',ok:null}, {d:'2026-07-29',ok:null}, {d:'2026-07-30',ok:null}, {d:'2026-07-31',ok:null}
+    ],
+    prazo_mx:[
+      {d:'2026-07-02',ok:null}, {d:'2026-07-07',ok:null}, {d:'2026-07-09',ok:null},
+      {d:'2026-07-14',ok:null}, {d:'2026-07-16',ok:null},
+      {d:'2026-07-21',ok:null}, {d:'2026-07-23',ok:null},
+      {d:'2026-07-28',ok:null}, {d:'2026-07-30',ok:null}
+    ]
   }
 };
 function getW(y,m){return WINDSOR_DATA[`${y}-${m}`]||null;}
@@ -746,24 +757,54 @@ function blockScoreDash(b,st){
 }
 
 function populateDashSelect(){
+  const MN=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
   const sel=document.getElementById('dash-sel-month');if(!sel)return;
   const prev=sel.value;sel.innerHTML='';
-  if(!history.length){sel.innerHTML='<option>Nenhum mês salvo</option>';return;}
-  history.slice().reverse().forEach(e=>{const opt=document.createElement('option');opt.value=e.key;opt.textContent=e.month;sel.appendChild(opt);});
+  // Meses salvos no histórico
+  const keys=new Set(history.map(h=>h.key));
+  // Adicionar meses do WINDSOR_DATA que ainda não estão no histórico
+  const wKeys=Object.keys(WINDSOR_DATA).sort((a,b)=>{
+    const [ay,am]=a.split('-').map(Number),[by,bm]=b.split('-').map(Number);
+    return ay!==by?ay-by:am-bm;
+  });
+  const allEntries=[...history];
+  wKeys.forEach(k=>{
+    if(!keys.has(k)){
+      const [y,m]=k.split('-').map(Number);
+      allEntries.push({key:k,month:`${MN[m]} ${y}`,year:y,monthIdx:m,state:null});
+    }
+  });
+  allEntries.sort((a,b)=>a.year!==b.year?b.year-a.year:b.monthIdx-a.monthIdx);
+  if(!allEntries.length){sel.innerHTML='<option>Nenhum mês salvo</option>';return;}
+  allEntries.forEach(e=>{const opt=document.createElement('option');opt.value=e.key;opt.textContent=e.month;sel.appendChild(opt);});
   if(prev&&[...sel.options].find(o=>o.value===prev))sel.value=prev;
+  else{
+    // Selecionar mês atual por padrão se disponível
+    const curKey=`${new Date().getFullYear()}-${new Date().getMonth()}`;
+    const curOpt=[...sel.options].find(o=>o.value===curKey);
+    if(curOpt)sel.value=curKey;
+  }
 }
 
 function renderDash(){
   const sel=document.getElementById('dash-sel-month');
-  if(!history.length){
+  const hasWindsor=Object.keys(WINDSOR_DATA).length>0;
+  if(!history.length&&!hasWindsor){
     document.getElementById('metrics-area').innerHTML='';
     document.getElementById('pizzas-area').innerHTML='<div class="no-data"><i class="ti ti-chart-pie" style="font-size:5vh;display:block;margin-bottom:1vh"></i>Nenhum dado salvo ainda.<br>Preencha e salve um mês primeiro.</div>';
     return;
   }
-  const key=sel?sel.value:history[history.length-1].key;
-  const entry=history.find(h=>h.key===key)||history[history.length-1];
+  const MN2=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const key=sel?sel.value:(history.length?history[history.length-1].key:'');
+  let entry=history.find(h=>h.key===key);
+  if(!entry){
+    // Mês do WINDSOR_DATA ainda não salvo no histórico — criar estado vazio
+    const [ey,em]=key.split('-').map(Number);
+    entry={key,month:`${MN2[em]} ${ey}`,year:ey,monthIdx:em,state:null};
+  }
   const B=getBlocks(entry.year,entry.monthIdx);
-  const st=JSON.parse(JSON.stringify(entry.state));
+  const st=entry.state?JSON.parse(JSON.stringify(entry.state)):{};
+  B.forEach(b=>{if(!st[b.id])st[b.id]={};});
   const w=getW(entry.year,entry.monthIdx);
   if(w&&st.conteudo){
     st.conteudo.posts_mob=w.posts_mob||0;
