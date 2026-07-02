@@ -797,16 +797,16 @@ function renderDash(){
   const intMobJun=wDash?wDash.int_mob:1410;
   const intMxJun=wDash?wDash.int_mx:814;
 
-  miniChart('sc-seg-mob',[277,457,637,817,1088,segMobJun],'#fc6c3f',250);
-  miniChart('sc-seg-mx',[8135,8331,8527,8723,9021,segMxJun],'#555',180);
+  miniChart('sc-seg-mob',[277,457,637,817,1088,segMobJun],'#fc6c3f',300);
+  miniChart('sc-seg-mx',[8135,8331,8527,8723,9021,segMxJun],'#555',160);
   miniChart('sc-int-mob',[553,1338,1499,1067,1980,intMobJun],'#fc6c3f',1800);
   miniChart('sc-int-mx',[2024,1912,1069,1370,1769,intMxJun],'#555',1500);
 
   // Atualiza cards laterais com valores reais do Windsor
   if(wDash){
     const fmt=n=>n.toLocaleString('pt-BR');
-    const pctSegMob=Math.round(wDash.seg_mob/250*100);
-    const pctSegMx=Math.round(wDash.seg_mx/180*100);
+    const pctSegMob=Math.round(wDash.seg_mob/300*100);
+    const pctSegMx=Math.round(wDash.seg_mx/160*100);
     const pctIntMob=Math.round(wDash.int_mob/1800*100);
     const pctIntMx=Math.round(wDash.int_mx/1500*100);
 
