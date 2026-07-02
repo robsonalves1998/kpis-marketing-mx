@@ -281,7 +281,7 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',system-u
 </div>
 
 <script>
-const ORANGE='#fc6c3f', RED='#000000', GRAY='#ccc';
+const ORANGE='#fc6c3f', RED='#000000';
 
 /* Windsor.ai — atualizado via Claude no início de cada mês */
 const WINDSOR_DATA={
@@ -362,12 +362,13 @@ function calcStories(w, campo, metaSemana){
     if(semana.length>0) semanas.push(semana);
   }
 
-  // Avaliar cada semana
+  // Avaliar cada semana — semanas parciais (cortadas pelo início/fim do mês) têm meta proporcional aos dias no mês
   const semanasAvaliadas=semanas.map(s=>{
     const verificados=s.filter(d=>d.ok!==null);
     const feitos=s.filter(d=>d.ok===true).length;
     const totalVerif=verificados.length;
-    return{dias:s, feitos, totalVerif, ok:totalVerif>0&&feitos>=metaSemana};
+    const metaAjustada=Math.floor(metaSemana*s.length/7);
+    return{dias:s, feitos, totalVerif, metaAjustada, ok:totalVerif>0&&feitos>=metaAjustada};
   });
 
   const semsVerif=semanasAvaliadas.filter(s=>s.totalVerif>0);
@@ -537,7 +538,7 @@ function renderBlocks(){
             </div>`;
           }).join('');
           return `<div style="margin-bottom:8px">
-            <div style="font-size:10px;font-weight:600;color:${sc};margin-bottom:4px">Semana ${i+1} · ${feitos}/${meta} ${unidade}${semOk?' ✓':semPendente?' (pendente)':''}</div>
+            <div style="font-size:10px;font-weight:600;color:${sc};margin-bottom:4px">Semana ${i+1} · ${feitos}/${sem.metaAjustada} ${unidade}${semOk?' ✓':semPendente?' (pendente)':''}</div>
             <div style="display:flex;flex-wrap:wrap;gap:4px">${diasHtml}</div>
           </div>`;
         }).join('');
@@ -752,7 +753,7 @@ function renderDash(){
       type:'doughnut',
       data:{labels:['Progresso','Restante'],datasets:[{
         data:isEmpty?[1,0]:[sc.pct,Math.max(100-sc.pct,0)],
-        backgroundColor:isEmpty?[GRAY,GRAY]:[ORANGE,RED],
+        backgroundColor:isEmpty?[RED,RED]:[ORANGE,RED],
         borderWidth:0,hoverOffset:0
       }]},
       options:{responsive:true,maintainAspectRatio:true,cutout:'68%',plugins:{legend:{display:false},tooltip:{enabled:false}},animation:{duration:600}},
@@ -761,7 +762,7 @@ function renderDash(){
         const cx=chartArea.left+chartArea.width/2,cy=chartArea.top+chartArea.height/2;
         const fs=Math.round(chartArea.width*0.12);
         ctx.save();ctx.font=`bold ${fs}px 'Segoe UI',sans-serif`;
-        ctx.fillStyle=isEmpty?GRAY:sc.status==='ok'?ORANGE:sc.pct>0?ORANGE:RED;
+        ctx.fillStyle=sc.status==='ok'?ORANGE:sc.pct>0?ORANGE:RED;
         ctx.textAlign='center';ctx.textBaseline='middle';
         ctx.fillText(sc.pct+'%',cx,cy);ctx.restore();
       }}]
